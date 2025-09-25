@@ -2,28 +2,18 @@ import streamlit as st
 import docx
 import PyPDF2
 import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 import io
-import google.generativeai as genai # NEW: Import the Google AI library
-nltk.download('stopwords')
-nltk.download('punkt')
-# --- NLTK Setup ---
-def setup_nltk():
-    """Downloads necessary NLTK data if not already present."""
-    try:
-        nltk.data.find('corpora/stopwords')
-    except LookupError:
-        nltk.download('stopwords')
-    try:
-        nltk.data.find('tokenizers/punkt')
-    except LookupError:
-        nltk.download('punkt')
+import os  # Import the os module
+import google.generativeai as genai
 
-setup_nltk()
+# --- NLTK DATA SETUP (FINAL METHOD) ---
+# This is the new, robust way to point to your bundled NLTK data.
+# It tells NLTK to look for data in the 'nltk_data' folder in your repository.
+nltk_data_dir = os.path.join(os.path.dirname(__file__), 'nltk_data')
+nltk.data.path.append(nltk_data_dir)
+# -----------------------------------------
 
-# NEW: Configure the Gemini API key from Streamlit secrets
-
+# Configure the Gemini API key from Streamlit secrets
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except Exception as e:
@@ -43,8 +33,8 @@ def extract_text_from_pdf(file_like_object):
     return text
 
 def extract_keywords(text):
-    stop_words = set(stopwords.words('english'))
-    words = word_tokenize(text.lower())
+    stop_words = set(nltk.corpus.stopwords.words('english'))
+    words = nltk.tokenize.word_tokenize(text.lower())
     keywords = [word for word in words if word.isalpha() and word not in stop_words]
     return set(keywords)
 
@@ -55,63 +45,32 @@ def analyze_resume(resume_text, jd_keywords):
     score = (len(matched_keywords) / len(jd_keywords)) * 100 if jd_keywords else 0
     return matched_keywords, missing_keywords, score
 
-# NEW: Function to get feedback from Gemini AI
 def get_gemini_feedback(resume_text, jd_text):
-    """
-    Uses the Gemini Pro model to get AI-powered feedback on the resume.
-    """
-    # This is the prompt that instructs the AI
     prompt = f"""
     You are an expert career coach and resume analyst.
-    Your task is to analyze the following resume and job description and provide constructive feedback.
-
-    **Resume Text:**
-    {resume_text}
-
-    **Job Description Text:**
-    {jd_text}
-
-    **Instructions:**
-    Provide your analysis in the following format, using Markdown for clear formatting:
-
-    **1. Overall Summary:**
-    Start with a brief, 1-2 sentence summary of how well the resume aligns with the job description.
-
-    **2. Strengths:**
-    In a bulleted list, identify the key strengths of the resume that match the job requirements. Mention specific skills or experiences.
-
-    **3. Actionable Suggestions for Improvement:**
-    In a bulleted list, provide specific, actionable advice on how the candidate can improve their resume to better align with this job. For example, suggest quantifying achievements, adding specific keywords that are missing, or rephrasing certain sections.
-
-    **4. Missing Keywords Analysis:**
-    List any critical keywords or skills from the job description that are completely missing from the resume.
+    Analyze the following resume and job description and provide constructive feedback.
+    **Resume Text:** {resume_text}
+    **Job Description Text:** {jd_text}
+    **Instructions:** Provide your analysis in Markdown format with sections for: '1. Overall Summary', '2. Strengths', '3. Actionable Suggestions for Improvement', and '4. Missing Keywords Analysis'.
     """
-
     model = genai.GenerativeModel('gemini-1.5-flash-latest')
     try:
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        return f"An error occurred while generating AI feedback: {str(e)}\n\nThis might be due to an invalid API key, network issues, or content safety restrictions."
-
+        return f"An error occurred while generating AI feedback: {str(e)}"
 
 # --- Streamlit UI (The "Frontend") ---
-
 st.set_page_config(page_title="AI Resume Analyzer", page_icon="🤖", layout="wide")
-
 st.title("🤖 AI-Powered Resume Analyzer")
 st.markdown("Get instant feedback on your resume! This tool analyzes your resume against a job description to give you a match score and AI-driven suggestions for improvement.")
 st.divider()
 
 col1, col2 = st.columns([1, 2])
-
 with col1:
     st.header("Your Resume")
     uploaded_resume = st.file_uploader("Upload your resume file (PDF or DOCX)", type=['pdf', 'docx'], label_visibility="collapsed")
-    
-    # NEW: Checkbox to enable/disable AI analysis
-    enable_ai_feedback = st.checkbox("Enable AI-Powered Feedback (Requires API Key)", value=True)
-
+    enable_ai_feedback = st.checkbox("Enable AI-Powered Feedback", value=True)
 with col2:
     st.header("The Job Description")
     job_description = st.text_area("Paste the job description here", height=350, label_visibility="collapsed")
@@ -119,7 +78,7 @@ with col2:
 if st.button("Analyze Your Resume", type="primary", use_container_width=True):
     if uploaded_resume is not None and job_description:
         with st.spinner('Analyzing... This may take a moment.'):
-            # Extract text
+            resume_text = ""
             if uploaded_resume.type == "application/pdf":
                 resume_text = extract_text_from_pdf(io.BytesIO(uploaded_resume.getvalue()))
             else:
@@ -128,7 +87,6 @@ if st.button("Analyze Your Resume", type="primary", use_container_width=True):
             jd_keywords = extract_keywords(job_description)
             matched, missing, score = analyze_resume(resume_text, jd_keywords)
             
-            # --- Display Keyword Analysis ---
             st.divider()
             st.header("Keyword Analysis")
             st.subheader(f"Keyword Match Score: {score:.2f}%")
@@ -142,13 +100,11 @@ if st.button("Analyze Your Resume", type="primary", use_container_width=True):
                 with st.expander(f"❌ Missing Keywords ({len(missing)})", expanded=True):
                     st.write(", ".join(sorted(missing)) or "Great job! No critical keywords are missing.")
             
-            # --- NEW: Display AI-Powered Feedback ---
             if enable_ai_feedback:
                 st.divider()
                 st.header("🤖 AI-Powered Smart Feedback")
                 with st.spinner("Our AI Coach is analyzing your resume..."):
                     ai_feedback = get_gemini_feedback(resume_text, job_description)
                     st.markdown(ai_feedback)
-                    
     else:
         st.error("Please upload your resume and paste the job description.")
