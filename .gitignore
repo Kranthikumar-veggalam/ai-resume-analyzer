@@ -1,0 +1,17 @@
+# Virtual Environment folders
+venv/
+.venv/
+env/
+.env
+
+# Streamlit secrets folder (This is very important!)
+.streamlit/secrets.toml
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# System-specific files (e.g., for macOS)
+.DS_Store
