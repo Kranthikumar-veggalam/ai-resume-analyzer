@@ -1,18 +1,15 @@
+# -----------------------------------------
 import streamlit as st
 import docx
 import PyPDF2
 import nltk
 import io
-import os  # Import the os module
-import google.generativeai as genai
+import os
+import google.generatieveai as genai
 
-# --- NLTK DATA SETUP (FINAL METHOD) ---
-# This is the new, robust way to point to your bundled NLTK data.
-# It tells NLTK to look for data in the 'nltk_data' folder in your repository.
+# This MUST be the only NLTK setup code at the top of your file
 nltk_data_dir = os.path.join(os.path.dirname(__file__), 'nltk_data')
 nltk.data.path.append(nltk_data_dir)
-# -----------------------------------------
-
 # Configure the Gemini API key from Streamlit secrets
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
