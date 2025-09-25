@@ -6,7 +6,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import io
 import google.generativeai as genai # NEW: Import the Google AI library
-
+nltk.download('stopwords')
+nltk.download('punkt')
 # --- NLTK Setup ---
 def setup_nltk():
     """Downloads necessary NLTK data if not already present."""
@@ -22,6 +23,7 @@ def setup_nltk():
 setup_nltk()
 
 # NEW: Configure the Gemini API key from Streamlit secrets
+
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except Exception as e:
