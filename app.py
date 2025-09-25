@@ -5,7 +5,7 @@ import PyPDF2
 import nltk
 import io
 import os
-import google.generatieveai as genai
+import google.generativeai as genai
 
 # This MUST be the only NLTK setup code at the top of your file
 nltk_data_dir = os.path.join(os.path.dirname(__file__), 'nltk_data')
