@@ -50,7 +50,7 @@ def get_gemini_feedback(resume_text, jd_text):
     **Job Description Text:** {jd_text}
     **Instructions:** Provide your analysis in Markdown format with sections for: '1. Overall Summary', '2. Strengths', '3. Actionable Suggestions for Improvement', and '4. Missing Keywords Analysis'.
     """
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     try:
         response = model.generate_content(prompt)
         return response.text
